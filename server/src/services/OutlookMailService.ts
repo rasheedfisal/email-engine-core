@@ -5,6 +5,7 @@ import { Email } from "@src/models/Email";
 import { EmailRepository } from "@src/repos/EmailRepo";
 import logger from "jet-logger";
 import { MailboxType } from "../types/OutlookTypes";
+import { MailboxService } from "./MailboxService";
 
 //M.C534_BAY.2.U.9b992022-9cab-d34d-9ea7-57e12388039e
 
@@ -387,5 +388,7 @@ export class OutlookMailService implements MailProviderStrategy {
     await client
       .api("/me/sendMail")
       .post({ message: mail.message, saveToSentItems: true });
+
+    await MailboxService.syncMailboxInternal(user, "outlook");
   }
 }

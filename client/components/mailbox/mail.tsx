@@ -39,15 +39,19 @@ export function Mail({
   const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
   const [mail] = useMail();
 
-  const mailbox = useMailbox();
+  const { isLoading, data, isSuccess } = useMailbox();
   const [inboxId, setInboxId] = useState("");
-  const emails = useEmail(inboxId);
+  const {
+    isLoading: isEmailLoading,
+    data: email,
+    isSuccess: isEmailSuccess,
+  } = useEmail(inboxId);
 
   useEffect(() => {
-    if (mailbox) {
-      setInboxId(mailbox[0].id);
+    if (data?.Data) {
+      setInboxId(data.Data[0].id);
     }
-  }, [mailbox]);
+  }, [isSuccess]);
 
   const handleChangeEmail = (value: string) => {
     setInboxId(value);
@@ -90,10 +94,10 @@ export function Mail({
             <AccountSwitcher isCollapsed={isCollapsed} />
           </div>
           <Separator />
-          {!!mailbox ? (
+          {!!isSuccess && !isLoading && data.Data ? (
             <Nav
               isCollapsed={isCollapsed}
-              links={mailbox.map((x) => ({
+              links={data.Data.map((x) => ({
                 id: x.id,
                 title: getMailboxName(x.mailboxType),
                 label: x.status.emailCount.toString(),
@@ -185,9 +189,9 @@ export function Mail({
               </form>
             </div>
             <TabsContent value="all" className="m-0">
-              {!!emails ? (
+              {!!isEmailSuccess && !isEmailLoading && email.Data ? (
                 <MailList
-                  items={emails.map((x) => ({
+                  items={email.Data.map((x) => ({
                     id: x.id,
                     email: x.sender,
                     name: x.recipients,
@@ -216,20 +220,18 @@ export function Mail({
               )}
             </TabsContent>
             <TabsContent value="unread" className="m-0">
-              {!!emails ? (
+              {!!isEmailSuccess && !isEmailLoading && email.Data ? (
                 <MailList
-                  items={emails
-                    .filter((item) => !item.isRead)
-                    .map((x) => ({
-                      id: x.id,
-                      email: x.sender,
-                      name: x.recipients,
-                      read: x.isRead,
-                      subject: x.subject,
-                      text: x.bodyPreview,
-                      labels: [x.importance, "work"],
-                      date: x.createdDateTime,
-                    }))}
+                  items={email.Data.filter((item) => !item.isRead).map((x) => ({
+                    id: x.id,
+                    email: x.sender,
+                    name: x.recipients,
+                    read: x.isRead,
+                    subject: x.subject,
+                    text: x.bodyPreview,
+                    labels: [x.importance, "work"],
+                    date: x.createdDateTime,
+                  }))}
                 />
               ) : (
                 <MailList
@@ -254,18 +256,16 @@ export function Mail({
         <ResizablePanel defaultSize={defaultLayout[2]}>
           <MailDisplay
             mail={
-              emails
-                ?.map((x) => ({
-                  id: x.id,
-                  email: x.sender,
-                  name: x.recipients,
-                  read: x.isRead,
-                  subject: x.subject,
-                  text: x.bodyPreview,
-                  labels: [x.importance, "work"],
-                  date: x.createdDateTime,
-                }))
-                .find((item) => item.id === mail.selected) || null
+              email?.Data?.map((x) => ({
+                id: x.id,
+                email: x.sender,
+                name: x.recipients,
+                read: x.isRead,
+                subject: x.subject,
+                text: x.bodyPreview,
+                labels: [x.importance, "work"],
+                date: x.createdDateTime,
+              })).find((item) => item.id === mail.selected) || null
             }
           />
         </ResizablePanel>

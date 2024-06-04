@@ -1,21 +1,30 @@
-import { atom, useAtom } from "jotai";
-import { Mailbox } from "../types/response";
-import { useEffect } from "react";
+// import { atom, useAtom } from "jotai";
+// import { Mailbox } from "../types/response";
+// import { useEffect } from "react";
 import { GetAllMailboxes } from "../actions/mail";
 
-const mailboxAtom = atom<Mailbox[] | undefined>(undefined);
+import { useQuery } from "@tanstack/react-query";
 
-export function useMailbox() {
-  const [mailbox, setMailbox] = useAtom(mailboxAtom);
+// const mailboxAtom = atom<Mailbox[] | undefined>(undefined);
 
-  useEffect(() => {
-    const fetchMailbox = async () => {
-      const mailbox = await GetAllMailboxes();
-      setMailbox(mailbox.Data);
-    };
+// export function useMailbox() {
+//   const [mailbox, setMailbox] = useAtom(mailboxAtom);
 
-    fetchMailbox();
-  }, [setMailbox]);
+//   useEffect(() => {
+//     const fetchMailbox = async () => {
+//       const mailbox = await GetAllMailboxes();
+//       setMailbox(mailbox.Data);
+//     };
 
-  return mailbox;
-}
+//     fetchMailbox();
+//   }, [setMailbox]);
+
+//   return mailbox;
+// }
+
+export const useMailbox = () => {
+  return useQuery({
+    queryKey: ["mailboxes"],
+    queryFn: () => GetAllMailboxes(),
+  });
+};

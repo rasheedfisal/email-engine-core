@@ -1,22 +1,31 @@
-import { atom, useAtom } from "jotai";
-import { Email } from "../types/response";
-import { useEffect } from "react";
+// import { atom, useAtom } from "jotai";
+// import { Email } from "../types/response";
+// import { useEffect } from "react";
 import { GetAllEmailboxes } from "../actions/mail";
 
-const emailAtom = atom<Email[] | undefined>(undefined);
+import { useQuery } from "@tanstack/react-query";
 
-export function useEmail(mailboxId: string) {
-  const [email, setEmail] = useAtom(emailAtom);
+// const emailAtom = atom<Email[] | undefined>(undefined);
 
-  useEffect(() => {
-    const fetchMailbox = async () => {
-      const email = await GetAllEmailboxes(mailboxId);
+// export function useEmail(mailboxId: string) {
+//   const [email, setEmail] = useAtom(emailAtom);
 
-      setEmail(email.Data);
-    };
+//   useEffect(() => {
+//     const fetchMailbox = async () => {
+//       const email = await GetAllEmailboxes(mailboxId);
 
-    fetchMailbox();
-  }, [mailboxId, setEmail]);
+//       setEmail(email.Data);
+//     };
 
-  return email;
-}
+//     fetchMailbox();
+//   }, [mailboxId, setEmail]);
+
+//   return email;
+// }
+
+export const useEmail = (mailboxId: string) => {
+  return useQuery({
+    queryKey: ["email" + mailboxId],
+    queryFn: () => GetAllEmailboxes(mailboxId),
+  });
+};

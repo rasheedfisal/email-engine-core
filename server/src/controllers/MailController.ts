@@ -5,6 +5,7 @@ import logger from "jet-logger";
 import { MailboxService } from "@src/services/MailboxService";
 import { EmailService } from "@src/services/EmailService";
 import { sendMessage } from "@src/utils/sendMessage";
+import { EmailRepository } from "@src/repos/EmailRepo";
 
 export class MailController {
   static async syncMailbox(req: Request, res: Response) {
@@ -76,7 +77,8 @@ export class MailController {
             HttpStatusCodes.BAD_REQUEST
           );
       }
-      await MailboxService.syncMailboxInternal(user, provider);
+      //await MailboxService.syncMailboxInternal(user, provider);
+
       return sendMessage(res, "Email sent successfully", HttpStatusCodes.OK);
     } catch (error) {
       logger.err(error);

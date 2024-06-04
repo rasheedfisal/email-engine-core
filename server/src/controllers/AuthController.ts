@@ -11,6 +11,7 @@ export class AuthController {
   ) {
     if (req.isAuthenticated()) {
       await MailboxService.syncMailboxInternal(req.user!, provider);
+      await new Promise((resolve) => setTimeout(resolve, 2000));
       await MailboxService.syncMailboxInternal(req.user!, provider);
       res.redirect(EnvVars.Fronend.base + EnvVars.Fronend.home);
     } else {

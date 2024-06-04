@@ -18,17 +18,17 @@ interface AccountSwitcherProps {
 }
 
 export function AccountSwitcher({ isCollapsed }: AccountSwitcherProps) {
-  const user = useUser();
+  const { isLoading, data } = useUser();
   // const [selectedAccount, setSelectedAccount] = React.useState<string>(
   //   accounts[0].email
   // );
 
-  if (!user) {
+  if (isLoading) {
     return <span>loading...</span>;
   }
 
   return (
-    <Select defaultValue={user.id}>
+    <Select defaultValue={data?.Data?.id}>
       <SelectTrigger
         className={cn(
           "flex items-center gap-2 [&>span]:line-clamp-1 [&>span]:flex [&>span]:w-full [&>span]:items-center [&>span]:gap-1 [&>span]:truncate [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0",
@@ -40,15 +40,15 @@ export function AccountSwitcher({ isCollapsed }: AccountSwitcherProps) {
         <SelectValue placeholder="Select an account">
           <User2 />
           <span className={cn("ml-2", isCollapsed && "hidden")}>
-            {user.username}
+            {data?.Data?.username}
           </span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem key={user.id} value={user.id}>
+        <SelectItem key={data?.Data?.id} value={data?.Data?.id!}>
           <div className="flex items-center gap-3 [&_svg]:h-4 [&_svg]:w-4 [&_svg]:shrink-0 [&_svg]:text-foreground">
             <User2 />
-            {user.username}
+            {data?.Data?.username}
           </div>
         </SelectItem>
       </SelectContent>

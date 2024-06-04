@@ -15,7 +15,7 @@ import { useUser } from "@/lib/hooks/use-User";
 import { useRouter } from "next/navigation";
 
 export default function ProfileBadge() {
-  const user = useUser();
+  const { isLoading, data } = useUser();
   const { push } = useRouter();
   // const { isLoading, data, error } = useQuery({
   //   queryKey: ["profile-badge"],
@@ -23,7 +23,7 @@ export default function ProfileBadge() {
   //   select: (data) => data,
   // });
 
-  if (!user) {
+  if (isLoading) {
     return <span>loading...</span>;
   }
 
@@ -31,9 +31,9 @@ export default function ProfileBadge() {
     <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
       <div className="ml-auto flex-1 sm:flex-initial">
         <div className="flex flex-1 flex-col">
-          <span className="font-base text-base">{user.email}</span>
+          <span className="font-base text-base">{data?.Data?.email}</span>
           <span className="font-base text-sm text-slate-400">
-            {user.username}
+            {data?.Data?.username}
           </span>
         </div>
       </div>
@@ -41,7 +41,7 @@ export default function ProfileBadge() {
         <DropdownMenuTrigger asChild>
           <Avatar>
             <AvatarFallback className="cursor-pointer">
-              {generateInitials(user.username)}
+              {generateInitials(data?.Data?.username!)}
             </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>

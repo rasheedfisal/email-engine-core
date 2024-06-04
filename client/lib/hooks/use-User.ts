@@ -1,21 +1,29 @@
-import { atom, useAtom } from "jotai";
-import { User } from "../types/response";
-import { useEffect } from "react";
+// import { atom, useAtom } from "jotai";
+// import { User } from "../types/response";
+// import { useEffect } from "react";
 import { getProfile } from "../actions/user";
 
-const userAtom = atom<User | undefined>(undefined);
+import { useQuery } from "@tanstack/react-query";
 
-export function useUser() {
-  const [user, setUser] = useAtom(userAtom);
+// const userAtom = atom<User | undefined>(undefined);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      const userData = await getProfile();
-      setUser(userData.Data);
-    };
+// export function useUser() {
+//   const [user, setUser] = useAtom(userAtom);
 
-    fetchUser();
-  }, [setUser]);
+//   useEffect(() => {
+//     const fetchUser = async () => {
+//       const userData = await getProfile();
+//       setUser(userData.Data);
+//     };
 
-  return user;
-}
+//     fetchUser();
+//   }, [setUser]);
+
+//   return user;
+// }
+export const useUser = () => {
+  return useQuery({
+    queryKey: ["user"],
+    queryFn: () => getProfile(),
+  });
+};
