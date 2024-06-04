@@ -23,6 +23,7 @@ import { useRouter } from "next/navigation";
 import { Providers } from "@/lib/types/general";
 import { sendEmail } from "@/lib/actions/mail";
 import { useMutation } from "@tanstack/react-query";
+import { useMailbox } from "@/lib/hooks/use-mailbox";
 
 const formSchema = z.object({
   to: z.string().min(2),
@@ -32,6 +33,7 @@ const formSchema = z.object({
 
 export default function EmailPage() {
   const router = useRouter();
+  const { refetch } = useMailbox();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -62,6 +64,7 @@ export default function EmailPage() {
       }),
     onSuccess: (data) => {
       toast.success(data.Message);
+      refetch();
       form.reset();
       router.push("/home");
     },
