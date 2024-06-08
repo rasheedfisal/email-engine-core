@@ -22,6 +22,7 @@ import { migrateIndexes } from "./repos/elasticSearchClient";
 import passport from "passport";
 import session from "express-session";
 import { corsOptions } from "../config/corsOptions";
+import limiter from "./middleware/limitterMiddleware";
 
 // **** Variables **** //
 
@@ -32,6 +33,8 @@ app.use(cors(corsOptions));
 // Basic middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.use(limiter);
 
 app.use(
   session({
@@ -44,6 +47,7 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
+
 // app.use(cookieParser(EnvVars.CookieProps.Secret));
 
 // Show routes called in console during development

@@ -21,7 +21,7 @@ export default {
   outlook_client_secret: "",
   outlook_callbackURL: "",
 
-  elastic_search_node: "",
+  elastic_search_node: "http://localhost:9200",
 
   frontend_base_url: "http://localhost:3000",
   frontend_home_page_url: "/home",

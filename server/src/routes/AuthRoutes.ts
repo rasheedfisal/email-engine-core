@@ -25,9 +25,15 @@ oauthProviders.forEach((provider) => {
   );
 });
 
-router.get(`/${Paths.Auth.Logout}`, (req, res) => {
-  req.logout();
-  res.redirect("/");
+router.post(`${Paths.Auth.Logout}`, (req, res, next) => {
+  // req.logout();
+  // res.redirect(EnvVars.Fronend.base);
+  req.logout(function (err) {
+    if (err) {
+      return next(err);
+    }
+    res.send("logged out successfully");
+  });
 });
 
 export default router;

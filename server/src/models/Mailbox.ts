@@ -5,6 +5,7 @@ export interface Mailbox {
   displayName: string;
   mailboxType: string;
   status: Status;
+  createdDateTime: string;
 }
 
 export interface Status {

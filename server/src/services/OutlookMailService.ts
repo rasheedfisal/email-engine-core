@@ -7,8 +7,6 @@ import logger from "jet-logger";
 import { MailboxType } from "../types/OutlookTypes";
 import { MailboxService } from "./MailboxService";
 
-//M.C534_BAY.2.U.9b992022-9cab-d34d-9ea7-57e12388039e
-
 export class OutlookMailService implements MailProviderStrategy {
   async fetchMessages(token: string, folder: MailboxType, filter?: string) {
     const client = Client.init({
@@ -16,19 +14,61 @@ export class OutlookMailService implements MailProviderStrategy {
         done(null, token);
       },
     });
+    let allMessages: any = [];
     let apiPath = `/me/mailFolders/${folder}/messages`;
 
     if (filter) {
       apiPath += `?$filter=${encodeURIComponent(filter)}`;
     }
-    const mails = await client.api(apiPath).get();
+    let mails = await client.api(apiPath).get();
+    while (mails) {
+      allMessages = allMessages.concat(mails.value);
+
+      if (mails["@odata.nextLink"]) {
+        mails = await client.api(mails["@odata.nextLink"]).get();
+      } else {
+        break;
+      }
+    }
     // const mails = await client.api(apiPath).top(10).get();
-    return mails.value;
+    return allMessages;
+  }
+
+  async saveEmails(emails: any[], mailboxId?: string) {
+    if (!mailboxId || emails.length === 0) {
+      return; // If mailboxId is null or emails array is empty, do nothing
+    }
+    const emailPromises = emails.map(async (em: any) => {
+      const emailObj: Email = {
+        id: em.id,
+        mailboxId,
+        subject: em.subject,
+        sender: em?.from?.emailAddress?.address || "N/A",
+        recipients: em?.toRecipients
+          ? em?.toRecipients
+              .map((x: any) => x?.emailAddress?.address)
+              .toString()
+          : "N/A",
+        body: em.body.content,
+        bodyPreview: em.bodyPreview,
+        isRead: em.isRead,
+        isDraft: em.isDraft,
+        importance: em.importance,
+        createdDateTime: em.createdDateTime,
+        sentDateTime: em.sentDateTime,
+        receivedDateTime: em.receivedDateTime,
+      };
+
+      await EmailRepository.createEmail(emailObj);
+    });
+    await Promise.all(emailPromises);
+    await MailboxRepository.updateMailboxStatus(mailboxId, emails.length);
   }
 
   async syncMailbox(user: Express.User) {
     try {
       const token = user.providers.outlook.token as string;
+
       const userId = user.id;
       const username = user.username;
       const emailAddress = user.email;
@@ -69,281 +109,106 @@ export class OutlookMailService implements MailProviderStrategy {
 
       console.log("==> end retriving...");
 
-      const inboxMail = MailboxRepository.saveOrUpdateMailboxDetails(
-        userId,
-        emailAddress,
-        username,
-        MailboxType.INBOX
-      );
-
-      const sentMail = MailboxRepository.saveOrUpdateMailboxDetails(
-        userId,
-        emailAddress,
-        username,
-        MailboxType.SENT
-      );
-
-      const draftMail = MailboxRepository.saveOrUpdateMailboxDetails(
-        userId,
-        emailAddress,
-        username,
-        MailboxType.DRAFT
-      );
-
-      const trashMail = MailboxRepository.saveOrUpdateMailboxDetails(
-        userId,
-        emailAddress,
-        username,
-        MailboxType.TRASH
-      );
-      const spamMail = MailboxRepository.saveOrUpdateMailboxDetails(
-        userId,
-        emailAddress,
-        username,
-        MailboxType.SPAM
-      );
-      const archiveMail = MailboxRepository.saveOrUpdateMailboxDetails(
-        userId,
-        emailAddress,
-        username,
-        MailboxType.ARCHIVE
-      );
-
       await Promise.all([
-        inboxMail,
-        sentMail,
-        draftMail,
-        trashMail,
-        spamMail,
-        archiveMail,
+        MailboxRepository.saveOrUpdateMailboxDetails(
+          userId,
+          emailAddress,
+          username,
+          MailboxType.INBOX
+        ),
+        MailboxRepository.saveOrUpdateMailboxDetails(
+          userId,
+          emailAddress,
+          username,
+          MailboxType.SENT
+        ),
+        MailboxRepository.saveOrUpdateMailboxDetails(
+          userId,
+          emailAddress,
+          username,
+          MailboxType.DRAFT
+        ),
+        MailboxRepository.saveOrUpdateMailboxDetails(
+          userId,
+          emailAddress,
+          username,
+          MailboxType.TRASH
+        ),
+        MailboxRepository.saveOrUpdateMailboxDetails(
+          userId,
+          emailAddress,
+          username,
+          MailboxType.SPAM
+        ),
+        MailboxRepository.saveOrUpdateMailboxDetails(
+          userId,
+          emailAddress,
+          username,
+          MailboxType.ARCHIVE
+        ),
       ]);
-
       // Process and save emails to the database (Elasticsearch)
 
-      if (inboxEmails.length > 0) {
-        const mailInboxInfo =
-          await MailboxRepository.getMailboxDetailsFromDatabase(
+      const [inboxMail, sentMail, draftMail, trashMail, spamMail, archiveMail] =
+        await Promise.all([
+          MailboxRepository.getMailboxDetailsFromDatabase(
             userId,
             MailboxType.INBOX
-          );
+          ),
+          MailboxRepository.getMailboxDetailsFromDatabase(
+            userId,
+            MailboxType.SENT
+          ),
+          MailboxRepository.getMailboxDetailsFromDatabase(
+            userId,
+            MailboxType.DRAFT
+          ),
+          MailboxRepository.getMailboxDetailsFromDatabase(
+            userId,
+            MailboxType.TRASH
+          ),
+          MailboxRepository.getMailboxDetailsFromDatabase(
+            userId,
+            MailboxType.SPAM
+          ),
+          MailboxRepository.getMailboxDetailsFromDatabase(
+            userId,
+            MailboxType.ARCHIVE
+          ),
+        ]);
 
-        if (!!mailInboxInfo) {
-          inboxEmails.forEach(async (em: any) => {
-            let emailObj: Email = {
-              id: em.id,
-              mailboxId: mailInboxInfo.id,
-              subject: em.subject,
-              sender: em.from.emailAddress.address,
-              recipients: em.toRecipients
-                .map((x: any) => x.emailAddress.address)
-                .toString(),
-              body: em.body.content,
-              bodyPreview: em.bodyPreview,
-              isRead: em.isRead,
-              isDraft: em.isDraft,
-              importance: em.importance,
-              createdDateTime: em.createdDateTime,
-              sentDateTime: em.sentDateTime,
-              receivedDateTime: em.receivedDateTime,
-            };
-
-            await EmailRepository.createEmail(emailObj);
-          });
-          await MailboxRepository.updateMailboxStatus(
-            mailInboxInfo.id,
-            inboxEmails.length
-          );
-        }
+      if (inboxEmails.length > 0) {
+        await this.saveEmails(inboxEmails, inboxMail?.id);
       }
 
       console.log("==> inbox check");
 
       if (sentEmails.length > 0) {
-        const sentInboxInfo =
-          await MailboxRepository.getMailboxDetailsFromDatabase(
-            userId,
-            MailboxType.SENT
-          );
-        if (!!sentInboxInfo) {
-          sentEmails.forEach(async (em: any) => {
-            let emailObj: Email = {
-              id: em.id,
-              mailboxId: sentInboxInfo.id,
-              subject: em.subject,
-              sender: em.from.emailAddress.address,
-              recipients: em.toRecipients
-                .map((x: any) => x.emailAddress.address)
-                .toString(),
-              body: em.body.content,
-              bodyPreview: em.bodyPreview,
-              isRead: em.isRead,
-              isDraft: em.isDraft,
-              importance: em.importance,
-              createdDateTime: em.createdDateTime,
-              sentDateTime: em.sentDateTime,
-              receivedDateTime: em.receivedDateTime,
-            };
-
-            await EmailRepository.createEmail(emailObj);
-          });
-
-          await MailboxRepository.updateMailboxStatus(
-            sentInboxInfo.id,
-            sentEmails.length
-          );
-        }
+        await this.saveEmails(sentEmails, sentMail?.id);
       }
 
       console.log("==> sent check");
 
       if (draftEmails.length > 0) {
-        const draftInboxInfo =
-          await MailboxRepository.getMailboxDetailsFromDatabase(
-            userId,
-            MailboxType.DRAFT
-          );
-        if (!!draftInboxInfo) {
-          draftEmails.forEach(async (em: any) => {
-            let emailObj: Email = {
-              id: em.id,
-              mailboxId: draftInboxInfo.id,
-              subject: em.subject,
-              sender: em.from.emailAddress.address,
-              recipients: em.toRecipients
-                .map((x: any) => x.emailAddress.address)
-                .toString(),
-              body: em.body.content,
-              bodyPreview: em.bodyPreview,
-              isRead: em.isRead,
-              isDraft: em.isDraft,
-              importance: em.importance,
-              createdDateTime: em.createdDateTime,
-              sentDateTime: em.sentDateTime,
-              receivedDateTime: em.receivedDateTime,
-            };
-
-            await EmailRepository.createEmail(emailObj);
-          });
-
-          await MailboxRepository.updateMailboxStatus(
-            draftInboxInfo.id,
-            draftEmails.length
-          );
-        }
+        await this.saveEmails(draftEmails, draftMail?.id);
       }
 
       console.log("==> draft check");
 
       if (trashEmails.length > 0) {
-        const trashInboxInfo =
-          await MailboxRepository.getMailboxDetailsFromDatabase(
-            userId,
-            MailboxType.TRASH
-          );
-        if (!!trashInboxInfo) {
-          trashEmails.forEach(async (em: any) => {
-            let emailObj: Email = {
-              id: em.id,
-              mailboxId: trashInboxInfo.id,
-              subject: em.subject,
-              sender: em.from.emailAddress.address,
-              recipients: em.toRecipients
-                .map((x: any) => x.emailAddress.address)
-                .toString(),
-              body: em.body.content,
-              bodyPreview: em.bodyPreview,
-              isRead: em.isRead,
-              isDraft: em.isDraft,
-              importance: em.importance,
-              createdDateTime: em.createdDateTime,
-              sentDateTime: em.sentDateTime,
-              receivedDateTime: em.receivedDateTime,
-            };
-
-            await EmailRepository.createEmail(emailObj);
-          });
-
-          await MailboxRepository.updateMailboxStatus(
-            trashInboxInfo.id,
-            trashEmails.length
-          );
-        }
+        await this.saveEmails(trashEmails, trashMail?.id);
       }
 
       console.log("==> trash check");
 
       if (spamEmails.length > 0) {
-        const spamInboxInfo =
-          await MailboxRepository.getMailboxDetailsFromDatabase(
-            userId,
-            MailboxType.SPAM
-          );
-        if (!!spamInboxInfo) {
-          spamEmails.forEach(async (em: any) => {
-            let emailObj: Email = {
-              id: em.id,
-              mailboxId: spamInboxInfo.id,
-              subject: em.subject,
-              sender: em.from.emailAddress.address,
-              recipients: em.toRecipients
-                .map((x: any) => x.emailAddress.address)
-                .toString(),
-              body: em.body.content,
-              bodyPreview: em.bodyPreview,
-              isRead: em.isRead,
-              isDraft: em.isDraft,
-              importance: em.importance,
-              createdDateTime: em.createdDateTime,
-              sentDateTime: em.sentDateTime,
-              receivedDateTime: em.receivedDateTime,
-            };
-
-            await EmailRepository.createEmail(emailObj);
-          });
-
-          await MailboxRepository.updateMailboxStatus(
-            spamInboxInfo.id,
-            spamEmails.length
-          );
-        }
+        await this.saveEmails(spamEmails, spamMail?.id);
       }
 
       console.log("==> spam check");
 
       if (archiveEmails.length > 0) {
-        const archiveInboxInfo =
-          await MailboxRepository.getMailboxDetailsFromDatabase(
-            userId,
-            MailboxType.ARCHIVE
-          );
-        if (!!archiveInboxInfo) {
-          archiveEmails.forEach(async (em: any) => {
-            let emailObj: Email = {
-              id: em.id,
-              mailboxId: archiveInboxInfo.id,
-              subject: em.subject,
-              sender: em.from.emailAddress.address,
-              recipients: em.toRecipients
-                .map((x: any) => x.emailAddress.address)
-                .toString(),
-              body: em.body.content,
-              bodyPreview: em.bodyPreview,
-              isRead: em.isRead,
-              isDraft: em.isDraft,
-              importance: em.importance,
-              createdDateTime: em.createdDateTime,
-              sentDateTime: em.sentDateTime,
-              receivedDateTime: em.receivedDateTime,
-            };
-
-            await EmailRepository.createEmail(emailObj);
-          });
-
-          await MailboxRepository.updateMailboxStatus(
-            archiveInboxInfo.id,
-            archiveEmails.length
-          );
-        }
+        await this.saveEmails(archiveEmails, archiveMail?.id);
       }
 
       console.log("==> archive check");
@@ -390,5 +255,6 @@ export class OutlookMailService implements MailProviderStrategy {
       .post({ message: mail.message, saveToSentItems: true });
 
     await MailboxService.syncMailboxInternal(user, "outlook");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }

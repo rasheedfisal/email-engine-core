@@ -34,7 +34,6 @@ export class EmailRepository {
             receivedDateTime: email.receivedDateTime,
           },
         });
-        logger.info("email details saved to Elasticsearch");
         logger.info("create email in Elasticsearch");
       }
     } catch (error) {
@@ -47,6 +46,13 @@ export class EmailRepository {
       const { hits } = await elasticSearchClient.search({
         index: "emails",
         body: {
+          sort: [
+            {
+              createdDateTime: {
+                order: "desc",
+              },
+            },
+          ],
           query: {
             match: {
               mailboxId,

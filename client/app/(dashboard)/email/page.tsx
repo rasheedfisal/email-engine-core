@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -22,8 +21,9 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Providers } from "@/lib/types/general";
 import { sendEmail } from "@/lib/actions/mail";
-import { useMutation } from "@tanstack/react-query";
-import { useMailbox } from "@/lib/hooks/use-mailbox";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import SubmitButton from "@/components/submit-button";
+import { SendIcon } from "lucide-react";
 
 const formSchema = z.object({
   to: z.string().min(2),
@@ -33,7 +33,7 @@ const formSchema = z.object({
 
 export default function EmailPage() {
   const router = useRouter();
-  const { refetch } = useMailbox();
+  const queryClient = useQueryClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -64,7 +64,7 @@ export default function EmailPage() {
       }),
     onSuccess: (data) => {
       toast.success(data.Message);
-      refetch();
+      queryClient.invalidateQueries({ queryKey: ["mailboxes"] });
       form.reset();
       router.push("/home");
     },
@@ -138,9 +138,12 @@ export default function EmailPage() {
             )}
           />
 
-          <Button type="submit" size={"lg"}>
-            Send
-          </Button>
+          <SubmitButton
+            title="Send"
+            clicked={isPending}
+            loadingTitle="loading..."
+            icon={<SendIcon className="h-5 w-5" />}
+          />
         </form>
       </Form>
     </div>

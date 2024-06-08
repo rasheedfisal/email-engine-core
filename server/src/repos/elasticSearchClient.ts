@@ -4,10 +4,10 @@ import EnvVars from "@src/constants/EnvVars";
 
 const elasticSearchClient = new Client({
   node: EnvVars.ElasticSearch.node,
-  auth: {
-    username: EnvVars.ElasticSearch.username,
-    password: EnvVars.ElasticSearch.password,
-  },
+  // auth: {
+  //   username: EnvVars.ElasticSearch.username,
+  //   password: EnvVars.ElasticSearch.password,
+  // },
 });
 
 export async function checkAndCreateIndex(index: string) {

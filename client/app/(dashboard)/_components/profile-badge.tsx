@@ -12,16 +12,25 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import React from "react";
 import { generateInitials } from "@/lib/utils";
 import { useUser } from "@/lib/hooks/use-User";
+import { logout } from "@/lib/actions/user";
+import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 export default function ProfileBadge() {
   const { isLoading, data } = useUser();
   const { push } = useRouter();
-  // const { isLoading, data, error } = useQuery({
-  //   queryKey: ["profile-badge"],
-  //   queryFn: () => getProfile(),
-  //   select: (data) => data,
-  // });
+
+  const { mutate: logoutFn } = useMutation({
+    mutationFn: logout,
+    onSuccess: () => {
+      toast.success("logged out");
+      push("/");
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   if (isLoading) {
     return <span>loading...</span>;
@@ -51,7 +60,7 @@ export default function ProfileBadge() {
           {/* <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator /> */}
-          <DropdownMenuItem onClick={() => push("/")}>Logout</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => logoutFn()}>Logout</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

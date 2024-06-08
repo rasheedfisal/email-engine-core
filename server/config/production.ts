@@ -3,7 +3,7 @@ export default {
   node_env: "production",
 
   // ## Server ##
-  port: 8181,
+  port: 3001,
   host: "localhost",
 
   // ## Authentication ##
@@ -22,7 +22,7 @@ export default {
   outlook_client_secret: "",
   outlook_callbackURL: "",
 
-  elastic_search_node: "",
+  elastic_search_node: "http://localhost:9200",
 
   frontend_base_url: "http://localhost:3000",
   frontend_home_page_url: "/home",

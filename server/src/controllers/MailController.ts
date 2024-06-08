@@ -79,7 +79,7 @@ export class MailController {
       }
       //await MailboxService.syncMailboxInternal(user, provider);
 
-      return sendMessage(res, "Email sent successfully", HttpStatusCodes.OK);
+      sendMessage(res, "Email sent successfully", HttpStatusCodes.OK);
     } catch (error) {
       logger.err(error);
       return sendMessage(
@@ -98,6 +98,7 @@ export class MailController {
       if (result === null) {
         return sendMessage(res, "Mailbox not found", HttpStatusCodes.NOT_FOUND);
       }
+
       sendMessage(res, "Mailboxes retrived", HttpStatusCodes.OK, result);
     } catch (error) {
       logger.err(error);

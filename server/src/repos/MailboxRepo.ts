@@ -10,6 +10,7 @@ export class MailboxRepository {
     mailboxType: string
   ) {
     try {
+      const createdDate = new Date().toISOString();
       const mailboxExists = await elasticSearchClient.search({
         index: "mailboxes",
         body: {
@@ -23,6 +24,7 @@ export class MailboxRepository {
             },
           },
         },
+        size: 1,
       });
 
       if (mailboxExists.hits.hits.length > 0) {
@@ -60,7 +62,9 @@ export class MailboxRepository {
               emailCount: 0,
               lastSyncTime: new Date().toISOString(),
             },
+            createdDateTime: createdDate,
           },
+          refresh: true,
         });
         logger.info("Mailbox details saved to Elasticsearch");
       }
@@ -138,6 +142,13 @@ export class MailboxRepository {
       const { hits } = await elasticSearchClient.search({
         index: "mailboxes",
         body: {
+          sort: [
+            {
+              createdDateTime: {
+                order: "asc",
+              },
+            },
+          ],
           query: {
             bool: {
               must: [{ match: { userId: userId } }],
@@ -158,7 +169,9 @@ export class MailboxRepository {
         return null;
       }
     } catch (error) {
-      logger.err("Error retrieving mailbox details from Elasticsearch:", error);
+      logger.err(
+        "Error retrieving mailbox details from Elasticsearch: " + error
+      );
       return null;
     }
   }
